@@ -2,7 +2,7 @@
 
 **Natural language → bash → execute.**
 
-`pish` is a tiny CLI that wraps the [pi](https://pi.dev) coding agent harness. Describe what you want in plain English, and `pish` will generate the bash command, ask for confirmation, and run it.
+`pish` is a tiny bash script that wraps the [pi](https://pi.dev) coding agent harness. Describe what you want in plain English, and `pish` generates the bash command, asks for confirmation, and runs it.
 
 ---
 
@@ -10,22 +10,21 @@
 
 ### Prerequisites
 
-- [pi](https://pi.dev) must be installed and authenticated with an API key or OAuth
-- Python 3.10+
+- [pi](https://pi.dev) must be installed and authenticated
 
-### Install from source
+### One-liner install
+
+```bash
+curl -L https://raw.githubusercontent.com/wawow830/pish/main/pish.sh -o ~/.local/bin/pish
+chmod +x ~/.local/bin/pish
+```
+
+Or clone and symlink:
 
 ```bash
 git clone https://github.com/wawow830/pish.git
 cd pish
-pip install -e .
-```
-
-Or copy the single script directly:
-
-```bash
-cp pish/cli.py ~/.local/bin/pish
-chmod +x ~/.local/bin/pish
+ln -sf "$(pwd)/pish.sh" ~/.local/bin/pish
 ```
 
 ---
@@ -63,14 +62,17 @@ pish --model deepseek-v3.2 "find all large files"
 
 ## How it works
 
-`pish` invokes `pi` in **print mode** with agent tooling disabled so the model only emits raw bash. The default model is `gemma4` (~2–3 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
+`pish` invokes `pi` in **print mode** with everything locked down except the ollama-cloud extension (so fast models like `gemma4` resolve correctly):
 
 ```bash
 pi --print --no-session --no-tools --no-skills \
    --no-prompt-templates --no-context-files \
-   --no-themes --mode text --model gemma4 \
-   --system-prompt "..." "your prompt"
+   --no-themes --mode text \
+   --no-extensions -e ~/.pi/agent/npm/node_modules/pi-ollama-cloud/index.ts \
+   --model gemma4 --system-prompt "..." "your prompt"
 ```
+
+The default model is `gemma4` (~2–3 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
 
 ---
 
