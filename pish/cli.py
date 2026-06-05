@@ -21,7 +21,7 @@ SYSTEM_PROMPT = (
 OLLAMA_EXT = os.path.expanduser("~/.pi/agent/npm/node_modules/pi-ollama-cloud/index.ts")
 
 
-def generate_command(prompt: str, model: str | None, load_ollama_ext: bool = False) -> str:
+def generate_command(prompt: str, model: str | None) -> str:
     cmd = [
         "pi",
         "--print",
@@ -34,7 +34,8 @@ def generate_command(prompt: str, model: str | None, load_ollama_ext: bool = Fal
         "--mode", "text",
         "--system-prompt", SYSTEM_PROMPT,
     ]
-    if load_ollama_ext and os.path.isfile(OLLAMA_EXT):
+    # Lock down to only the ollama-cloud extension so fast models like gemma4 work
+    if os.path.isfile(OLLAMA_EXT):
         cmd += ["--no-extensions", "-e", OLLAMA_EXT]
     if model:
         cmd += ["--model", model]
@@ -74,7 +75,6 @@ def main() -> None:
     parser.add_argument("prompt", nargs="*", help="Description of what to do")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"LLM model (default: {DEFAULT_MODEL})")
     parser.add_argument("--dry-run", action="store_true", help="Preview command without executing")
-    parser.add_argument("--no-extensions", action="store_true", help="Disable all pi extensions except ollama-cloud")
     args = parser.parse_args()
 
     if args.prompt:
@@ -90,7 +90,7 @@ def main() -> None:
         sys.exit(1)
 
     print("🧠 generating...", end="\r", file=sys.stderr)
-    command = generate_command(prompt, args.model, load_ollama_ext=args.no_extensions)
+    command = generate_command(prompt, args.model)
     sys.stderr.write(" " * 20 + "\r")
     sys.stderr.flush()
 
