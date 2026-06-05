@@ -4,10 +4,13 @@ pish — natural language → bash → execute
 Wraps the pi coding agent harness to generate shell commands.
 """
 
+import argparse
+import os
 import re
 import subprocess
 import sys
 
+DEFAULT_MODEL = "gemma4"
 SYSTEM_PROMPT = (
     "You are a precise bash command generator. "
     "Convert the user's natural language description into the exact bash command(s) needed. "
@@ -15,22 +18,27 @@ SYSTEM_PROMPT = (
     "No commentary. Output must be valid bash that can be executed directly."
 )
 
+OLLAMA_EXT = os.path.expanduser("~/.pi/agent/npm/node_modules/pi-ollama-cloud/index.ts")
 
-def generate_command(prompt: str) -> str:
+
+def generate_command(prompt: str, model: str | None, load_ollama_ext: bool = False) -> str:
     cmd = [
         "pi",
         "--print",
         "--no-session",
         "--no-tools",
-        "--no-extensions",
         "--no-skills",
         "--no-prompt-templates",
         "--no-context-files",
         "--no-themes",
         "--mode", "text",
         "--system-prompt", SYSTEM_PROMPT,
-        prompt,
     ]
+    if load_ollama_ext and os.path.isfile(OLLAMA_EXT):
+        cmd += ["--no-extensions", "-e", OLLAMA_EXT]
+    if model:
+        cmd += ["--model", model]
+    cmd += [prompt]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
 
@@ -39,6 +47,12 @@ def generate_command(prompt: str) -> str:
         sys.exit(result.returncode)
 
     output = result.stdout.strip()
+
+    # Strip deprecation warning line
+    lines = output.splitlines()
+    if lines and "Deprecation warning" in lines[0]:
+        lines = lines[1:]
+    output = "\n".join(lines).strip()
 
     # Strip markdown fences if the model disobeyed
     output = re.sub(r"^```(?:bash|sh|shell)?\s*", "", output)
@@ -53,26 +67,40 @@ def generate_command(prompt: str) -> str:
 
 
 def main() -> None:
-    if len(sys.argv) > 1:
-        prompt = " ".join(sys.argv[1:])
+    parser = argparse.ArgumentParser(
+        prog="pish",
+        description="Natural language → bash → execute",
+    )
+    parser.add_argument("prompt", nargs="*", help="Description of what to do")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"LLM model (default: {DEFAULT_MODEL})")
+    parser.add_argument("--dry-run", action="store_true", help="Preview command without executing")
+    parser.add_argument("--no-extensions", action="store_true", help="Disable all pi extensions except ollama-cloud")
+    args = parser.parse_args()
+
+    if args.prompt:
+        prompt = " ".join(args.prompt)
     elif not sys.stdin.isatty():
         prompt = sys.stdin.read().strip()
     else:
-        print("Usage: pish <prompt>", file=sys.stderr)
+        parser.print_help()
         sys.exit(1)
 
     if not prompt:
-        print("Usage: pish <prompt>", file=sys.stderr)
+        parser.print_help()
         sys.exit(1)
 
     print("🧠 generating...", end="\r", file=sys.stderr)
-    command = generate_command(prompt)
+    command = generate_command(prompt, args.model, load_ollama_ext=args.no_extensions)
     sys.stderr.write(" " * 20 + "\r")
     sys.stderr.flush()
 
     # Display
     for line in command.splitlines():
         print(f"> {line}")
+
+    if args.dry_run:
+        print("(Dry run — not executed)")
+        sys.exit(0)
 
     # Confirm
     try:

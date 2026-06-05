@@ -33,7 +33,7 @@ chmod +x ~/.local/bin/pish
 ## Usage
 
 ```bash
-# Describe what you want
+# Describe what you want (uses fast gemma4 model by default)
 pish "create a directory called backups and copy all .txt files into it"
 
 # Shell quoting tips (fish/zsh/bash)
@@ -41,6 +41,12 @@ pish 'create *.txt for each letter of the alphabet'
 
 # Pipe a prompt in
 echo "list all docker containers" | pish
+
+# Preview without executing
+pish --dry-run "rm -rf important_folder"
+
+# Use a different model
+pish --model deepseek-v3.2 "find all large files"
 ```
 
 **Workflow:**
@@ -49,19 +55,22 @@ echo "list all docker containers" | pish
 3. You confirm with `y` (or abort with `n`)
 4. If confirmed, `pish` executes the command via bash
 
+**Options:**
+- `--model <name>` — override the LLM (default: `gemma4`)
+- `--dry-run` — preview the command without executing
+
 ---
 
 ## How it works
 
-`pish` invokes `pi` in **print mode** with all agent tooling disabled so the model only emits raw bash:
+`pish` invokes `pi` in **print mode** with agent tooling disabled so the model only emits raw bash. The default model is `gemma4` (~2–3 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
 
 ```bash
-pi --print --no-session --no-tools --no-extensions \
-   --no-skills --no-prompt-templates --no-context-files \
-   --no-themes --mode text --system-prompt "..." "your prompt"
+pi --print --no-session --no-tools --no-skills \
+   --no-prompt-templates --no-context-files \
+   --no-themes --mode text --model gemma4 \
+   --system-prompt "..." "your prompt"
 ```
-
-The output is stripped of markdown fences and presented for your approval.
 
 ---
 
