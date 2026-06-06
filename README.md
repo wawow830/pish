@@ -32,11 +32,14 @@ ln -sf "$(pwd)/pish.sh" ~/.local/bin/pish
 ## Usage
 
 ```bash
-# Describe what you want (uses fast gemma4 model by default)
+# Describe what you want (uses quality gemma4 model by default)
 pish "create a directory called backups and copy all .txt files into it"
 
 # Shell quoting tips (fish/zsh/bash)
 pish 'create *.txt for each letter of the alphabet'
+
+# Need speed? Use the fast model (~1.9s vs ~2.3s)
+pish --fast "echo hello"
 
 # Pipe a prompt in
 echo "list all docker containers" | pish
@@ -44,13 +47,12 @@ echo "list all docker containers" | pish
 # Preview without executing
 pish --dry-run "rm -rf important_folder"
 
-# Use a different model
+# Use a specific model
 pish --model deepseek-v3.2 "find all large files"
 
 # Control how hard the model thinks
 pish --thinking low "list running processes"
 pish --thinking off "echo hello"
-pish --thinking xhigh "design a complex regex"
 ```
 
 **Workflow:**
@@ -61,14 +63,28 @@ pish --thinking xhigh "design a complex regex"
 
 **Options:**
 - `--model <name>` — override the LLM (default: `gemma4`)
+- `--fast` — use `rnj-1:8b` for faster generation (~1.9s)
 - `--thinking <level>` — control reasoning depth: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`
 - `--dry-run` — preview the command without executing
 
 ---
 
+## Model selection
+
+Benchmarked on ollama-cloud with the prompt "create a txt file for each letter a through z":
+
+| model | speed | quality | best for |
+|---|---|---|---|
+| `rnj-1:8b` | ~1.9 s | clean, uses absolute paths | `--fast` flag |
+| `gemma4` | ~2.3 s | clean, relative paths | **default** |
+| `qwen3-coder-next` | ~1.9 s | wraps in backticks | avoid |
+| `deepseek-v3.2` | ~8 s | very thorough | complex tasks |
+
+---
+
 ## How it works
 
-`pish` invokes `pi` in **print mode** with everything locked down except the ollama-cloud extension (so fast models like `gemma4` resolve correctly):
+`pish` invokes `pi` in **print mode** with everything locked down except the ollama-cloud extension (so models resolve correctly):
 
 ```bash
 pi --print --no-session --no-tools --no-skills \
@@ -77,8 +93,6 @@ pi --print --no-session --no-tools --no-skills \
    --no-extensions -e ~/.pi/agent/npm/node_modules/pi-ollama-cloud/index.ts \
    --model gemma4 --system-prompt "..." "your prompt"
 ```
-
-The default model is `gemma4` (~2 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
 
 ---
 

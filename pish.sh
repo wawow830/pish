@@ -6,11 +6,12 @@ set -euo pipefail
 
 OLLAMA_EXT="${HOME}/.pi/agent/npm/node_modules/pi-ollama-cloud/index.ts"
 DEFAULT_MODEL="gemma4"
+FAST_MODEL="rnj-1:8b"
 
 SYSTEM_PROMPT="You are a precise bash command generator. Convert the user's natural language description into the exact bash command(s) needed. Respond with ONLY raw bash commands. No markdown code fences. No explanations. No commentary. Output must be valid bash that can be executed directly."
 
 model="$DEFAULT_MODEL"
-thinking="minimal"
+thinking=""
 dry_run=false
 
 # Parse flags
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
     --model)
       model="$2"
       shift 2
+      ;;
+    --fast)
+      model="$FAST_MODEL"
+      shift
       ;;
     --thinking)
       thinking="$2"
@@ -30,14 +35,16 @@ while [[ $# -gt 0 ]]; do
       ;;
     --help|-h)
       cat <<'EOF'
-Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>
+Usage: pish [--model <name>] [--fast] [--thinking <level>] [--dry-run] <prompt>
 
   --model <name>      LLM model (default: gemma4)
+  --fast              Use rnj-1:8b for faster generation (~1.9s vs ~2.3s)
   --thinking <level>  off, minimal, low, medium, high, xhigh
   --dry-run           Preview command without executing
 
 Examples:
   pish "list all docker containers"
+  pish --fast "echo hello"
   pish --model deepseek-v3.2 --thinking low "find large files"
   echo "show disk usage" | pish
 EOF
@@ -49,7 +56,7 @@ EOF
       ;;
     -*)
       echo "Unknown option: $1" >&2
-      echo "Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>" >&2
+      echo "Usage: pish [--model <name>] [--fast] [--thinking <level>] [--dry-run] <prompt>" >&2
       exit 1
       ;;
     *)
@@ -65,7 +72,7 @@ if [[ -z "$prompt" ]] && [[ ! -t 0 ]]; then
 fi
 
 if [[ -z "$prompt" ]]; then
-  echo "Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>" >&2
+  echo "Usage: pish [--model <name>] [--fast] [--thinking <level>] [--dry-run] <prompt>" >&2
   exit 1
 fi
 
@@ -132,13 +139,9 @@ if [[ "$dry_run" == true ]]; then
 fi
 
 # Confirm and execute
-read -r -p "Execute? [y/n/c]: " answer || true
+read -r -p "Execute? [y/n]: " answer || true
 if [[ "$answer" =~ ^[Yy](es)?$ ]]; then
   bash -c "$output"
-elif [[ "$answer" =~ ^[Cc](opy)?$ ]]; then
-  printf '%s\n' "$output" | fish_clipboard_copy
-  echo "Copied to clipboard."
-  exit 0
 else
   echo "Aborted."
   exit 0
