@@ -139,9 +139,20 @@ if [[ "$dry_run" == true ]]; then
 fi
 
 # Confirm and execute
-read -r -p "Execute? [y/n]: " answer || true
+read -r -p "Execute? [y/n/c]: " answer || true
 if [[ "$answer" =~ ^[Yy](es)?$ ]]; then
   bash -c "$output"
+elif [[ "$answer" =~ ^[Cc](opy)?$ ]]; then
+  if command -v fish &>/dev/null; then
+    printf '%s\n' "$output" | fish -c 'fish_clipboard_copy'
+  elif command -v fish_clipboard_copy &>/dev/null; then
+    printf '%s\n' "$output" | fish_clipboard_copy
+  else
+    echo "Clipboard copy requires fish shell. Install fish or use y/n." >&2
+    exit 1
+  fi
+  echo "Copied to clipboard."
+  exit 0
 else
   echo "Aborted."
   exit 0
