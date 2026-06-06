@@ -10,6 +10,7 @@ DEFAULT_MODEL="gemma4"
 SYSTEM_PROMPT="You are a precise bash command generator. Convert the user's natural language description into the exact bash command(s) needed. Respond with ONLY raw bash commands. No markdown code fences. No explanations. No commentary. Output must be valid bash that can be executed directly."
 
 model="$DEFAULT_MODEL"
+thinking=""
 dry_run=false
 
 # Parse flags
@@ -19,20 +20,25 @@ while [[ $# -gt 0 ]]; do
       model="$2"
       shift 2
       ;;
+    --thinking)
+      thinking="$2"
+      shift 2
+      ;;
     --dry-run)
       dry_run=true
       shift
       ;;
     --help|-h)
       cat <<'EOF'
-Usage: pish [--model <name>] [--dry-run] <prompt>
+Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>
 
-  --model <name>   LLM model (default: gemma4)
-  --dry-run          Preview command without executing
+  --model <name>      LLM model (default: gemma4)
+  --thinking <level>  off, minimal, low, medium, high, xhigh
+  --dry-run           Preview command without executing
 
 Examples:
   pish "list all docker containers"
-  pish --model deepseek-v3.2 "find large files"
+  pish --model deepseek-v3.2 --thinking low "find large files"
   echo "show disk usage" | pish
 EOF
       exit 0
@@ -43,7 +49,7 @@ EOF
       ;;
     -*)
       echo "Unknown option: $1" >&2
-      echo "Usage: pish [--model <name>] [--dry-run] <prompt>" >&2
+      echo "Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>" >&2
       exit 1
       ;;
     *)
@@ -59,7 +65,7 @@ if [[ -z "$prompt" ]] && [[ ! -t 0 ]]; then
 fi
 
 if [[ -z "$prompt" ]]; then
-  echo "Usage: pish [--model <name>] [--dry-run] <prompt>" >&2
+  echo "Usage: pish [--model <name>] [--thinking <level>] [--dry-run] <prompt>" >&2
   exit 1
 fi
 
@@ -78,6 +84,10 @@ set -- pi \
 # Lock down to only the ollama-cloud extension so fast models work
 if [[ -f "$OLLAMA_EXT" ]]; then
   set -- "$@" --no-extensions -e "$OLLAMA_EXT"
+fi
+
+if [[ -n "$thinking" ]]; then
+  set -- "$@" --thinking "$thinking"
 fi
 
 set -- "$@" --model "$model" "$prompt"

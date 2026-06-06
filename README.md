@@ -46,6 +46,11 @@ pish --dry-run "rm -rf important_folder"
 
 # Use a different model
 pish --model deepseek-v3.2 "find all large files"
+
+# Control how hard the model thinks
+pish --thinking low "list running processes"
+pish --thinking off "echo hello"
+pish --thinking xhigh "design a complex regex"
 ```
 
 **Workflow:**
@@ -56,6 +61,7 @@ pish --model deepseek-v3.2 "find all large files"
 
 **Options:**
 - `--model <name>` — override the LLM (default: `gemma4`)
+- `--thinking <level>` — control reasoning depth: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`
 - `--dry-run` — preview the command without executing
 
 ---
@@ -72,7 +78,7 @@ pi --print --no-session --no-tools --no-skills \
    --model gemma4 --system-prompt "..." "your prompt"
 ```
 
-The default model is `gemma4` (~2–3 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
+The default model is `gemma4` (~2 s) because it was the fastest model in benchmarks that still produces clean, correct bash. You can override with any model your `pi` install has authenticated.
 
 ---
 
