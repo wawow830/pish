@@ -10,7 +10,7 @@ DEFAULT_MODEL="gemma4"
 SYSTEM_PROMPT="You are a precise bash command generator. Convert the user's natural language description into the exact bash command(s) needed. Respond with ONLY raw bash commands. No markdown code fences. No explanations. No commentary. Output must be valid bash that can be executed directly."
 
 model="$DEFAULT_MODEL"
-thinking=""
+thinking="minimal"
 dry_run=false
 
 # Parse flags
@@ -132,9 +132,13 @@ if [[ "$dry_run" == true ]]; then
 fi
 
 # Confirm and execute
-read -r -p "Execute? [y/n]: " answer || true
+read -r -p "Execute? [y/n/c]: " answer || true
 if [[ "$answer" =~ ^[Yy](es)?$ ]]; then
   bash -c "$output"
+elif [[ "$answer" =~ ^[Cc](opy)?$ ]]; then
+  printf '%s\n' "$output" | fish_clipboard_copy
+  echo "Copied to clipboard."
+  exit 0
 else
   echo "Aborted."
   exit 0
